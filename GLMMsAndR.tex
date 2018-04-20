@@ -1,0 +1,292 @@
+
+\documentclass{beamer}
+\usepackage{graphicx}
+\newcommand{\vn}[1]{\mbox{{\it #1}}}
+\newcommand{\vb}{\vspace{\baselineskip}}
+\newcommand{\vh}{\vspace{.5\baselineskip}}
+\newcommand{\vf}{\vspace{\fill}}
+\usepackage{tikz}
+\usetikzlibrary{arrows}
+\newcommand\Fontvi{\fontsize{9}{7.2}\selectfont}
+
+
+\newcommand{\mypause}{}
+
+\usetheme{Frankfurt}
+
+\title{Generalized Linear Mixed Models and Practical Applications in R}
+\author{Sydney Benson, Davita Blyakher, Christina Knudson, Ph.D.}
+\institute{University of St. Thomas}
+\date{Rose-Hulman Undergraduate Mathematics Conference}
+
+\begin{document}
+
+
+\frame{\titlepage}
+
+\begin{frame}
+\frametitle{Overview}
+
+\begin{itemize}
+    \item[] Generalized linear mixed models can overcome limitations of other modeling techniques
+    \begin{itemize}
+        \item Response distribution
+        \item Correlated data
+    \end{itemize}
+    \item[] Parallel computing can increase the speed of computation
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}
+\frametitle{Linear Models}
+
+Assumptions:
+\begin{itemize}
+    \item Independent responses
+    \item Normally distributed responses
+    \item Responses have equal variances
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}
+\frametitle{Linear Model Issues}
+
+What if our responses are not normally distributed?
+\begin{itemize}
+    \item Log odds of your favorite sports team winning a game (binomial)
+    \item Log mean number of students per class at your university (Poisson or negative binomial)
+\end{itemize}
+\vspace{.5cm}
+\pause
+Use a generalized linear model (GLM)!
+
+\end{frame}
+
+\begin{frame}
+\frametitle{Linear Model Issues}
+
+What if our responses are correlated?
+\begin{itemize}
+    \item Repeated measurements on individuals
+    \item Measurements on siblings, parents, relatives
+\end{itemize}
+\vspace{.5cm}
+\pause
+Use a linear mixed model (LMM)!
+\begin{itemize}
+    \item Differences between ``grouped'' data are ``fixed'' effects
+    \item Differences within ``grouped'' data are ``random'' effects
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}
+\frametitle{Linear Mixed Models}
+
+What are "random" effects?
+\begin{itemize}
+    \item[] Random variables, usually normally distributed with a mean 0
+\end{itemize}
+\vspace{.5cm}
+Random effects are non-observable, but can be estimated by parameters
+\begin{itemize}
+    \item[] Variance component(s): variance(s) of random effects
+\end{itemize}
+\vspace{.5cm}
+Parameters for linear mixed models:
+\begin{itemize}
+    \item Fixed effects
+    \item Variance components
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}
+\frametitle{Generalized Linear Mixed Models}
+
+What if responses are not normally distributed \underline{and} correlated? \\
+\vspace{.5cm}
+Use a generalized linear mixed model (GLMM)!
+\begin{itemize}
+    \item Combination of GLM and LMM
+    \item Include random effects to account for correlation
+    \item Model log odds or log mean
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}
+\frametitle{Salamander Example}
+
+\begin{center}
+\includegraphics[width=1.5in]{salamander2.jpg}
+\end{center}
+
+Salamanders: single species from 2 different locations
+\begin{itemize}
+    \item Rough Butt (R)
+    \item White Side (W)
+\end{itemize}
+\vspace{.25cm}
+Do salamanders prefer to mate with others from same location?
+
+\end{frame}
+
+\begin{frame}
+\frametitle{Salamander Example}
+
+Correlated: each salamander was mated with multiple others\\
+\vspace{.4cm}
+Unmeasurable: salamanders have personalized tendencies to mate \\
+\vspace{.4cm}
+Assumption: each salamander's tendency is independent
+
+
+\end{frame}
+
+\begin{frame}
+\frametitle{Salamander Example}
+
+What affects the probability that a pair of salamanders will mate?
+\begin{itemize}
+    \item Type of cross (RR, RW, WR, WW)
+    \item The female's mating tendency 
+    \item The male's mating tendency
+\end{itemize}
+\pause
+\vspace{.5cm}
+Fixed effect: type of cross\\
+\vspace{.25cm}
+Random effect: salamander mating tendencies
+
+\end{frame}
+
+\begin{frame}
+\frametitle{Salamander Example} 
+
+Translation to statistical modeling:
+\begin{itemize}
+\item Response: whether or not the pair mated
+\item Fixed effects: $\beta_{RR}, \, \beta_{RW}, \, \beta_{WR}, \, \beta_{WW}$ (log odds of mating)
+\item Random effects: each salamander (independent, normal)
+\item Variance components: $\sigma_F^2$ and $\sigma_M^2$
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Using \texttt{glmm}}
+
+\begin{verbatim}
+    > sal <- glmm(Mate ~ 0 + Cross, 
+       random = list( ~ 0 + Female, ~ 0 + Male ), 
+       varcomps.names = c( "F" , "M" ), 
+       data = salamander,  m = 10^4,
+       family.glmm = bernoulli.glmm)
+\end{verbatim}
+
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Using \texttt{glmm}}
+
+\begin{verbatim}
+Fixed Effects:
+         Estimate Std. Error z value Pr(>|z|)    
+CrossR/R   1.4629     0.2720   5.378 7.53e-08 ***
+CrossR/W   0.3781     0.2527   1.496 0.134612    
+CrossW/R  -1.7398     0.3157  -5.512 3.55e-08 ***
+CrossW/W   1.0345     0.2683   3.857 0.000115 ***
+\end{verbatim}
+
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Using \texttt{glmm}}
+
+We can translate the log odds back to probabilities:
+\begin{align*}
+ \text{P(mating)} = \dfrac{\exp \left(\hat{\beta}_{RW}\right)}{1+\exp \left(\hat{\beta}_{RW}\right)}
+\end{align*}
+
+\vspace{.1cm}
+\begin{tabular}{l|cccc}
+Cross & RR & WW& RW & WR  \\ \hline 
+Probability of mating &   0.812&0.798& 0.584& 0.149  \\ 
+\end{tabular}
+\end{frame}
+
+\begin{frame}
+\frametitle{Parallel Computing}
+
+\begin{center}
+1 person doing 12 calculations \\
+\textbf{versus} \\
+4 people doing 3 calculations each \\
+\end{center}
+\vspace{.5cm}
+Splitting the computation work of a function amongst the cores available in the computing device \\
+\vspace{.25cm}
+Most computers have 4 or more cores \\
+\vspace{.25cm}
+Leads to increased computation speed
+
+\end{frame}
+
+\begin{frame}
+\frametitle{Parallel Computing}
+
+How can we do this in R? \\
+\vspace{.5cm}
+The R package \texttt{parallel}
+\begin{itemize}
+    \item Detects cores
+    \item Divides likelihood approximation calculations amongst cores
+    \item Sums results from each core
+    \item Returns likelihood approximation
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}
+\frametitle{Thank you!}
+\begin{center}
+
+bens0104@stthomas.edu \\
+\url{https://github.com/bensonsyd}\\
+\url{https://www.linkedin.com/in/bensonsyd}
+
+
+\end{center}
+
+\end{frame}
+
+\begin{frame}
+\frametitle{References}
+\Fontvi
+\begin{itemize}
+\item[] Knudson C. (2015). \textit{glmm: Generalized Linear Mixed Models via Monte Carlo Likelihood
+Approximation.} R package version 1.0.2, URL \url{http://CRAN.R-project.org/package=glmm}.\\ \vspace{.1cm}
+
+\item[] Knudson C. (2016). \textit{Monte Carlo Likelihood Approximation for Generalized Linear Mixed Models.} Ph.D. Thesis, University of Minnesota.\\ \vspace{.1cm}
+
+\item[] Ripley B., Tierney L., Urbanek S. (2017). \textit{Package 'parallel'} R package version 3.3.1, URL \url{http://stat.ethz.ch/R-manual/R-devel/library/parallel/doc/parallel.pdf}. \\ \vspace{.1cm}
+
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+\frametitle{Using \texttt{glmm}}
+
+Notes:
+\begin{itemize}
+\item \texttt{0+Cross} produces log odds for each group, without using reference group.
+\item \texttt{0+Female} centers random effects for females at 0, likewise for males.
+\item Bigger m gives better estimates but takes more time.
+\end{itemize}
+
+\end{frame}
+
+\end{document}
